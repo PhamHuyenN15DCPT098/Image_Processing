@@ -4,66 +4,196 @@
 #include <string.h>
 #include <cmath>
 using namespace std;
-class filter{
-	private:
-		int height;
-		int width;
-		int matrix_negative[400][400];
-	public:
-		filter(){
-			height=0;
-			width=0;
-			int i,j;
-			for (i=0;i<height;i++){
-				for (j=0;j<width;j++){
-					matrix_negative[i][j]=0;
-				}
-			}
-		}
-};
 class image {
 	private:
 		int height;
 		int width;
 		int gray_level;
 		char **pixels;
-		int **pixel_int_before;
-		int **pixel_int_after;
+		int **GrayScale_before;
+		int **GrayScale_after;
 	public:
-		image (){
-			height=0;
-			width=0;
-			gray_level=0;
-			int i,j;
-			pixels=new char*[height];
-			pixel_int_before=new int*[height];
-			pixel_int_after=new int *[height];
-			for (i=0;i<height;i++) {
-				pixels[i] = new char[width];
-				pixel_int_before[i]=new int[width];
-				pixel_int_after[i]=new int [width];
-			}
-			for (i=0; i<height;i++){
-				for (j=0;j<width;j++){
-					pixels[i][j]=0;
-					pixel_int_before[i][j]=0;
-					pixel_int_after[i][j]=0;
-				}
-			}
-		}
-		void image_set();
+		image ();
+		void image_set(char *fname);
 		void negative();
 		void log_transformation();
 		void histogram_equalization();
+		void smoothing_linear();
+		void laplacian();
 		void write();
 		void delete_array();
 		//~image();
 };
-void image::image_set(){
-	cout<<"set"<<endl;
+class Filter{
+	protected:
+		int height;
+		int width;
+		int **matrix;
+	public:
+		Filter();
+		void set_filter_h_w(int h, int w);// set height, width
+		void set_filter_matrix(int i, int j,int n);
+		int get_height();
+		int get_width();
+		int get_matrix(int i, int j);
+};
+class smoothing_filter : public Filter{
+	public: 
+		smoothing_filter (int height, int width){ // contructor khoi tao voi tham so truyen vao la height, width
+			matrix=new int *[height];
+			for (int i=0;i<height;i++) 	
+				matrix[i]=new int [width];
+		}
+		void set_SF ();// set smoothing filter
+};
+class laplacian_filter : public Filter{
+	public: 
+		laplacian_filter (int height, int width){ // contructor khoi tao voi tham so truyen vao la height, width
+			matrix=new int *[height];
+			for (int i=0;i<height;i++) 	
+				matrix[i]=new int [width];
+		}
+		void set_LF ();// set laplacian filter
+};
+int Menu();
+int Menu_Image();
+int main (){
+	int choice_filter;
+	int choice_image;
+	char *fname;
+	choice_image=Menu_Image();
+	image i1;
+	choice_filter=Menu();
+	switch (choice_image){
+		case 1:	
+			fname="dragon.ascii.pgm";
+			break;
+		case 2:
+			fname="mona_lisa.ascii.pgm";
+			break;
+		case 3:
+			fname="saturn.ascii.pgm";
+			break;
+		case 4:
+			fname="columns.ascii.pgm";
+			break;
+		case 5:
+			fname="venus2.ascii.pgm";
+			break;
+	}
+	//cout<<fname;
+	switch (choice_filter){
+		case 1:
+			cout<<fname;
+			i1.image_set(fname);
+			i1.negative();
+			i1.write();
+			i1.delete_array();
+			break;
+		case 2:
+			i1.image_set(fname);
+			i1.log_transformation();
+			i1.write();
+			i1.delete_array();
+			break;
+		case 3:
+			i1.image_set(fname);
+			i1.histogram_equalization();
+			i1.write();
+			i1.delete_array();
+			break;
+		case 4:
+			i1.image_set(fname);
+			i1.smoothing_linear();
+			i1.write();
+			i1.delete_array();
+			break;
+		case 5:
+			i1.image_set(fname);
+			i1.laplacian();
+			i1.write();
+			i1.delete_array();
+	}
+	return 0;
+}
+Filter::Filter(){
+	height=0;
+	width=0;
+	int i,j;
+	matrix = new int *[height];
+	for (i=0;i<height;i++) matrix[i]=new int [width];
+	for (i=0;i<height;i++){
+		for (j=0;j<width;j++){
+			matrix[i][j]=0;
+		}
+	}
+}
+void Filter::set_filter_h_w(int h, int w){
+	height=h;
+	width=w;
+}
+void Filter::set_filter_matrix(int i, int j,int n){
+		matrix[i][j]=n;
+}
+int Filter::get_height(){
+	return height;
+}
+int Filter::get_width(){
+	return width;
+}
+int Filter::get_matrix(int i, int j){
+	return matrix[i][j];
+}
+void smoothing_filter::set_SF(){
+	set_filter_h_w(3,3);
+	int i, j;
+	int m[3][3]={1,1,1,1,1,1,1,1,1};
+	for (i=0;i<get_height();i++)
+		for (j=0;j<get_width();j++){
+			set_filter_matrix(i, j, m[i][j]);
+		}
+}
+void laplacian_filter::set_LF(){
+	set_filter_h_w(3,3);
+	int i, j;
+	int m[3][3]={1,1,1,1,-8,1,1,1,1};
+	for (i=0;i<get_height();i++)
+		for (j=0;j<get_width();j++){
+			set_filter_matrix(i, j, m[i][j]);
+		}
+}
+image::image(){
+	height=0;
+	width=0;
+	gray_level=0;
+	int i,j;
+	pixels=new char*[height];
+	GrayScale_before=new int*[height];
+	GrayScale_after=new int *[height];
+	for (i=0;i<height;i++) {
+		pixels[i] = new char[width];
+		GrayScale_before[i]=new int[width];
+		GrayScale_after[i]=new int [width];
+	}
+	for (i=0; i<height;i++){
+		for (j=0;j<width;j++){
+			pixels[i][j]=0;
+			GrayScale_before[i][j]=0;
+			GrayScale_after[i][j]=0;
+		}
+	}
+}
+void image::image_set(char *fname){
+	char *add="C:\\Users\\User\\Desktop\\final\\";// address
+	char *Full_address;
+	
+	Full_address=strcat(add,fname);
+	cout<<add;
 	ifstream ifs;
-	//ifs.open("C:\\Users\\User\\Desktop\\final\\mona_lisa.ascii.pgm", ios_base::in);
-	ifs.open("C:\\Users\\User\\Desktop\\final\\feep.ascii.pgm", ios_base::in);
+	//ifs.open("C:\\Users\\User\\Desktop\\final\\venus2.ascii.pgm", ios_base::in);
+	ifs.open(Full_address, ios_base::in);
+	//ifs.open("C:\\Users\\User\\Desktop\\final\\draft.pgm", ios_base::in);
+//	ifs.open("C:\\Users\\User\\Desktop\\final\\feep.ascii.pgm", ios_base::in);
 	if (ifs.fail()==true)
 		cout<<"Failed to open this file"<<endl;
 	char buffer[100000];
@@ -84,26 +214,22 @@ void image::image_set(){
 	int i,j;
 	char *end;
 	pixels=new char *[height];
-	pixel_int_before=new int*[height];
-	pixel_int_after=new int *[height];
+	GrayScale_before=new int*[height];
+	GrayScale_after=new int *[height];
 	for (i=0;i<height;i++) {
 				pixels[i] = new char[width];
-				pixel_int_before[i]=new int[width];
-				pixel_int_after[i]=new int [width];
+				GrayScale_before[i]=new int[width];
+				GrayScale_after[i]=new int [width];
 	}
 	for (i=0;i<height;i++){
 		ifs.getline(buffer, 100000, '\n');
 		j=0;
-		pixel_int_before[i][j]=strtol(buffer, &end,10);
-		cout<<pixel_int_before[i][j]<<" ";
+		GrayScale_before[i][j]=strtol(buffer, &end,10);
 		for(j=1;j<width;j++)
 		{
-			pixel_int_before[i][j]=strtol (end, &end, 10);
-			cout<<pixel_int_before[i][j]<<" ";
+			GrayScale_before[i][j]=strtol (end, &end, 10);
 		}
-		cout<<endl;
 	}
-
 	ifs.close();
 }
 void image::write(){
@@ -113,21 +239,16 @@ void image::write(){
 	if (ofs.fail()==true)
 		cout<<"Failed to open this file"<<endl;
 	ofs<<"P2"<<endl;
-	itoa(width,c,10);
-	ofs<<c<<" ";
-	itoa(height,c,10);
-	ofs<<c<<endl;
-	itoa(gray_level,c,10);
-	ofs<<c<<endl;
+	ofs<<width<<" ";
+	ofs<<height<<endl;
+	ofs<<gray_level<<endl;
 	int i, j;
 	for (i=0;i<height;i++){
 		for (j=0;j<width;j++){
-			itoa(pixel_int_after[i][j],c,10);
-			ofs<<pixel_int_after[i][j]<<" ";
-			cout<<pixel_int_after[i][j]<<" ";
+			ofs<<GrayScale_after[i][j]<<" ";
+			//cout<<GrayScale_after[i][j]<<" ";
 		}
-		cout<<endl;
-		
+		//cout<<endl;
 		ofs<<endl;
 	}
 	cout<<"success"<<endl;
@@ -137,57 +258,23 @@ void image::delete_array (){
 	int i;
 	for (i=0;i<height;i++){
 			delete [] pixels[i];
-			delete [] pixel_int_before[i];
-			delete [] pixel_int_after[i];
+			delete [] GrayScale_before[i];
+			delete [] GrayScale_after[i];
 	}
 }
 void image::negative(){
-	cout<<"negative"<<endl;
 	int i,j;
-//	pixels=new char *[height];
-//	pixel_int_before=new int*[height];
-//	pixel_int_after=new int *[height];
-//	for (i=0;i<height;i++) {
-//				pixels[i] = new char[width];
-//				pixel_int_before[i]=new int[width];
-//				pixel_int_after[i]=new int [width];
-//	}
-	for (i=0;i<height;i++){
-		for (j=0;j<width;j++)
-		cout<<pixel_int_before[i][j]<<" ";
-		cout<<endl;
-	}
-	cout<<endl;
 	for (i=0;i<height;i++){
 		for (j=0;j<width;j++){
-			pixel_int_after[i][j]=0;
-			cout<<pixel_int_after[i][j]<<" ";
+			GrayScale_after[i][j]=gray_level-GrayScale_before[i][j];
 		}
-		cout<<endl;
 	}
-	cout<<endl;
-	for (i=0;i<height;i++){
-		for (j=0;j<width;j++){
-			//cout<<pixel_int_before[i][j]<<" ";
-			pixel_int_after[i][j]=gray_level-pixel_int_before[i][j];
-			cout<<pixel_int_after[i][j]<<" ";
-		}
-		cout<<endl;
-	}
-	cout<<endl;
 }
 void image::log_transformation(){
 	int i,j;
 	for (i=0;i<height;i++){
 		for (j=0;j<width;j++){
-			pixel_int_after[i][j]=0;
-			cout<<pixel_int_after[i][j]<<" ";
-		}
-		cout<<endl;
-	}
-	for (i=0;i<height;i++){
-		for (j=0;j<width;j++){
-			pixel_int_after[i][j]=round(log10(1+pixel_int_before[i][j]));
+			GrayScale_after[i][j]=round(log10(1+GrayScale_before[i][j]));
 		}
 	}
 }
@@ -195,32 +282,187 @@ void image::histogram_equalization(){
 	int count[gray_level]={0};
 	int k=0;
 	int i,j;
-	for (i=0;i<height;i++){
-		for (j=0;j<width;j++){
-			pixel_int_after[i][j]=0;
-			cout<<pixel_int_after[i][j]<<" ";
-		}
-		cout<<endl;
-	}
 	float temp=0;
 	for (i=0;i<height;i++){
 		for (j=0;j<width;j++){
-			count[pixel_int_before[i][j]]++;
+			count[GrayScale_before[i][j]]++;
 		}
 	}
-//	for (i=0;i<=gray_level;i++){
-//		cout<<i<<" "<<count[i]<<endl;
-//	}
 	for (i=0;i<height;i++){
 		for (j=0;j<width;j++){
 			temp=0;
-			for (k=0;k<=pixel_int_before[i][j];k++){
+			for (k=0;k<=GrayScale_before[i][j];k++){
 				if(count[k]!=0)
 				temp=temp+((float)count[k]/(height*width));
 			}
-			pixel_int_after[i][j]=round(temp*gray_level);
+			GrayScale_after[i][j]=round(temp*gray_level);
+		}
 	}
 }
+void image::smoothing_linear(){
+	int i, j;
+	smoothing_filter sm1(3,3);
+	sm1.set_SF();
+	int sum_matrix=0;
+	for (i=0;i<sm1.get_height();i++){
+		for (j=0;j<sm1.get_width();j++)
+		sum_matrix=sum_matrix+sm1.get_matrix(i,j);
+	}
+//	cout<<sum_matrix<<endl;
+	int **sum;
+	sum=new int *[height];
+	for (i=0;i<height;i++)	sum[i]=new int [width];
+	for (i=0;i<height;i++){
+		for (j=0;j<width;j++){
+			sum[i][j]==0;
+		}
+	}
+	for (i=0;i<height;i++){
+		for (j=0;j<width;j++){
+			GrayScale_after[i][j]=0;
+		}
+	}
+	for (i=0;i<height;i++){
+		if (i==0){
+				for(j=0;j<width;j++){
+					if (j==0){
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(0,1)+sm1.get_matrix(0,0)+sm1.get_matrix(1,0)+sm1.get_matrix(1,1))+GrayScale_before[i][j+1]*(sm1.get_matrix(0,2)+sm1.get_matrix(1,2))
+							+GrayScale_before[i+1][j]*(sm1.get_matrix(2,0)+sm1.get_matrix(2,1))+GrayScale_before[i+1][i+1]*sm1.get_matrix(2,2);
+					}
+					else if (j==width-1){
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(0,1)+sm1.get_matrix(0,2)+sm1.get_matrix(1,2)+sm1.get_matrix(1,1))+GrayScale_before[i][j-1]*(sm1.get_matrix(0,0)+sm1.get_matrix(1,0))
+						+GrayScale_before[i+1][j]*(sm1.get_matrix(2,1)+sm1.get_matrix(2,2))+GrayScale_before[i+1][j-1]*sm1.get_matrix(2,0);
+					}
+					else{
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(0,1)+sm1.get_matrix(1,1))+GrayScale_before[i][j-1]*(sm1.get_matrix(1,0)+sm1.get_matrix(0,0))+GrayScale_before[i][j+1]*(sm1.get_matrix(0,2)+sm1.get_matrix(1,2))
+							+GrayScale_before[i+1][j-1]*sm1.get_matrix(2,0)+GrayScale_before[i+1][j]*sm1.get_matrix(2,1)+GrayScale_before[i+1][j+1]*sm1.get_matrix(2,2);
+					}
+					
+				}
+			}
+			else if (i==height-1){
+				for (j=0;j<width;j++){
+					if (j==0){
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(1,0)+sm1.get_matrix(2,0)+sm1.get_matrix(2,1)+sm1.get_matrix(1,1))+GrayScale_before[i][j+1]*(sm1.get_matrix(1,2)+sm1.get_matrix(2,2))
+							+GrayScale_before[i-1][j]*(sm1.get_matrix(0,0)+sm1.get_matrix(0,1))+GrayScale_before[i-1][j+1]*sm1.get_matrix(0,2);
+					}
+					else if (j==width-1){
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(1,2)+sm1.get_matrix(2,1)+sm1.get_matrix(2,2)+sm1.get_matrix(1,1))+GrayScale_before[i][j-1]*(sm1.get_matrix(1,0)+sm1.get_matrix(2,0))
+						+GrayScale_before[i-1][j]*(sm1.get_matrix(0,1)+sm1.get_matrix(0,2))+GrayScale_before[i-1][j-1]*sm1.get_matrix(0,0);
+					}
+					else {
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(2,1)+sm1.get_matrix(1,1))+GrayScale_before[i][j-1]*(sm1.get_matrix(1,0)+sm1.get_matrix(2,0))+GrayScale_before[i][j+1]*(sm1.get_matrix(1,2)+sm1.get_matrix(2,2))
+							+GrayScale_before[i-1][j-1]*sm1.get_matrix(0,0)+GrayScale_before[i-1][j]*sm1.get_matrix(0,1)+GrayScale_before[i-1][j+1]*sm1.get_matrix(0,2);
+					}
+				}
+			}
+			else{
+				for (j=0;j<width;j++){   
+					if (j==0){
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(1,0)+sm1.get_matrix(1,1))+GrayScale_before[i-1][j]*(sm1.get_matrix(0,0)+sm1.get_matrix(0,1))+GrayScale_before[i+1][j]*(sm1.get_matrix(2,0)+sm1.get_matrix(2,1))
+							+GrayScale_before[i-1][j+1]*sm1.get_matrix(0,2)+GrayScale_before[i][j+1]*sm1.get_matrix(1,2)+GrayScale_before[i+1][j+1]*sm1.get_matrix(2,2);
+					}
+					else if (j==width-1){
+						sum[i][j]=GrayScale_before[i][j]*(sm1.get_matrix(1,2)+sm1.get_matrix(1,1))+GrayScale_before[i-1][j]*(sm1.get_matrix(0,1)+sm1.get_matrix(0,2))+GrayScale_before[i+1][j]*(sm1.get_matrix(2,1)+sm1.get_matrix(2,2))
+							+GrayScale_before[i-1][j-1]*sm1.get_matrix(0,0)+GrayScale_before[i][j-1]*sm1.get_matrix(1,0)+GrayScale_before[i+1][j-1]*sm1.get_matrix(2,0);
+					}
+					else {
+						sum[i][j]=GrayScale_before[i-1][j-1]*sm1.get_matrix(0,0)+GrayScale_before[i-1][j]*sm1.get_matrix(0,1)+GrayScale_before[i-1][j+1]*sm1.get_matrix(0,2)
+							+GrayScale_before[i][j-1]*sm1.get_matrix(1,0)+GrayScale_before[i][j]*sm1.get_matrix(1,1)+GrayScale_before[i][j+1]*sm1.get_matrix(1,2)
+							+GrayScale_before[i+1][j-1]*sm1.get_matrix(2,0)+GrayScale_before[i+1][j]*sm1.get_matrix(2,1)+GrayScale_before[i+1][j+1]*sm1.get_matrix(2,2);
+					}
+				}
+			}
+		}
+	cout<<endl;
+	for (i=0;i<height;i++){
+		for(j=0;j<width;j++){
+			GrayScale_after[i][j]=round((float)sum[i][j]/sum_matrix);
+		}
+	}
+	for (i=0;i<height;i++) delete [] sum[i]; // delete sum
+}
+void image::laplacian(){
+	int i, j;
+	laplacian_filter lf1(3,3);
+	lf1.set_LF();
+	int **temp;
+	temp=new int *[height];
+	for (i=0;i<height;i++)	temp[i]=new int [width];
+	for (i=0;i<height;i++){
+		for (j=0;j<width;j++){
+			temp[i][j]==0;
+		}
+	}
+	for (i=0;i<height;i++){
+		for (j=0;j<width;j++){
+			GrayScale_after[i][j]=0;
+		}
+	}
+	for (i=0;i<height;i++){
+		if (i==0){
+				for(j=0;j<width;j++){
+					if (j==0){
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(0,1)+lf1.get_matrix(0,0)+lf1.get_matrix(1,0)+lf1.get_matrix(1,1))+GrayScale_before[i][j+1]*(lf1.get_matrix(0,2)+lf1.get_matrix(1,2))
+							+GrayScale_before[i+1][j]*(lf1.get_matrix(2,0)+lf1.get_matrix(2,1))+GrayScale_before[i+1][i+1]*lf1.get_matrix(2,2);
+					}
+					else if (j==width-1){
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(0,1)+lf1.get_matrix(0,2)+lf1.get_matrix(1,2)+lf1.get_matrix(1,1))+GrayScale_before[i][j-1]*(lf1.get_matrix(0,0)+lf1.get_matrix(1,0))
+						+GrayScale_before[i+1][j]*(lf1.get_matrix(2,1)+lf1.get_matrix(2,2))+GrayScale_before[i+1][j-1]*lf1.get_matrix(2,0);
+					}
+					else{
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(0,1)+lf1.get_matrix(1,1))+GrayScale_before[i][j-1]*(lf1.get_matrix(1,0)+lf1.get_matrix(0,0))+GrayScale_before[i][j+1]*(lf1.get_matrix(0,2)+lf1.get_matrix(1,2))
+							+GrayScale_before[i+1][j-1]*lf1.get_matrix(2,0)+GrayScale_before[i+1][j]*lf1.get_matrix(2,1)+GrayScale_before[i+1][j+1]*lf1.get_matrix(2,2);
+					}
+					
+				}
+			}
+			else if (i==height-1){
+				for (j=0;j<width;j++){
+					if (j==0){
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(1,0)+lf1.get_matrix(2,0)+lf1.get_matrix(2,1)+lf1.get_matrix(1,1))+GrayScale_before[i][j+1]*(lf1.get_matrix(1,2)+lf1.get_matrix(2,2))
+							+GrayScale_before[i-1][j]*(lf1.get_matrix(0,0)+lf1.get_matrix(0,1))+GrayScale_before[i-1][j+1]*lf1.get_matrix(0,2);
+					}
+					else if (j==width-1){
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(1,2)+lf1.get_matrix(2,1)+lf1.get_matrix(2,2)+lf1.get_matrix(1,1))+GrayScale_before[i][j-1]*(lf1.get_matrix(1,0)+lf1.get_matrix(2,0))
+						+GrayScale_before[i-1][j]*(lf1.get_matrix(0,1)+lf1.get_matrix(0,2))+GrayScale_before[i-1][j-1]*lf1.get_matrix(0,0);
+					}
+					else {
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(2,1)+lf1.get_matrix(1,1))+GrayScale_before[i][j-1]*(lf1.get_matrix(1,0)+lf1.get_matrix(2,0))+GrayScale_before[i][j+1]*(lf1.get_matrix(1,2)+lf1.get_matrix(2,2))
+							+GrayScale_before[i-1][j-1]*lf1.get_matrix(0,0)+GrayScale_before[i-1][j]*lf1.get_matrix(0,1)+GrayScale_before[i-1][j+1]*lf1.get_matrix(0,2);
+					}
+				}
+			}
+			else{
+				for (j=0;j<width;j++){   
+					if (j==0){
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(1,0)+lf1.get_matrix(1,1))+GrayScale_before[i-1][j]*(lf1.get_matrix(0,0)+lf1.get_matrix(0,1))+GrayScale_before[i+1][j]*(lf1.get_matrix(2,0)+lf1.get_matrix(2,1))
+							+GrayScale_before[i-1][j+1]*lf1.get_matrix(0,2)+GrayScale_before[i][j+1]*lf1.get_matrix(1,2)+GrayScale_before[i+1][j+1]*lf1.get_matrix(2,2);
+					}
+					else if (j==width-1){
+						temp[i][j]=GrayScale_before[i][j]*(lf1.get_matrix(1,2)+lf1.get_matrix(1,1))+GrayScale_before[i-1][j]*(lf1.get_matrix(0,1)+lf1.get_matrix(0,2))+GrayScale_before[i+1][j]*(lf1.get_matrix(2,1)+lf1.get_matrix(2,2))
+							+GrayScale_before[i-1][j-1]*lf1.get_matrix(0,0)+GrayScale_before[i][j-1]*lf1.get_matrix(1,0)+GrayScale_before[i+1][j-1]*lf1.get_matrix(2,0);
+					}
+					else {
+						temp[i][j]=GrayScale_before[i-1][j-1]*lf1.get_matrix(0,0)+GrayScale_before[i-1][j]*lf1.get_matrix(0,1)+GrayScale_before[i-1][j+1]*lf1.get_matrix(0,2)
+							+GrayScale_before[i][j-1]*lf1.get_matrix(1,0)+GrayScale_before[i][j]*lf1.get_matrix(1,1)+GrayScale_before[i][j+1]*lf1.get_matrix(1,2)
+							+GrayScale_before[i+1][j-1]*lf1.get_matrix(2,0)+GrayScale_before[i+1][j]*lf1.get_matrix(2,1)+GrayScale_before[i+1][j+1]*lf1.get_matrix(2,2);
+					}
+				}
+			}
+		}
+	cout<<endl;
+	for (i=0;i<height;i++){
+		for(j=0;j<width;j++){
+			if (lf1.get_matrix(1,1)<0)
+				GrayScale_after[i][j]=GrayScale_before[i][j]-temp[i][j];
+			else
+				GrayScale_after[i][j]=GrayScale_before[i][j]+temp[i][j];
+			if (GrayScale_after[i][j]<0)	GrayScale_after[i][j]=0;
+			//cout<<GrayScale_after[i][j]<<" ";
+		}
+		//cout<<endl;
+	}
 }
 int Menu(){
 	int choice;
@@ -235,31 +477,17 @@ int Menu(){
 	cin>>choice;
 	return choice;
 }
-int main (){
+int Menu_Image(){
 	int choice;
-	image i1;
-	choice=Menu();
-	
-	switch (choice){
-		case 1:
-			
-			i1.image_set();
-			i1.negative();
-			i1.write();
-			i1.delete_array();
-			break;
-		case 2:
-			i1.image_set();
-			i1.log_transformation();
-			i1.write();
-			i1.delete_array();
-			break;
-		case 3:
-			i1.image_set();
-			i1.histogram_equalization();
-			i1.write();
-			i1.delete_array();
-			break;
-	}
-	return 0;
+	cout<<"=================Some pictures=================="<<endl;
+	cout<<"1. dragon.ascii.pgm"<<endl;
+	cout<<"2. mona_lisa.ascii.pgm"<<endl;
+	cout<<"3. saturn.ascii.pgm"<<endl;
+	cout<<"4. columns.ascii.pgm"<<endl;
+	cout<<"5. venus2.ascii.pgm"<<endl;
+	cout<<"================================================"<<endl;
+	cout<<"Your choice is: ";
+	cin>>choice;
+	return choice;
 }
+
